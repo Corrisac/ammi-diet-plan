@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ammi's Diet Plan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A weekly repeating meal plan, one day at a time.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14342B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Diet Plan">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{
+  /* Enamel green, the colour of old kitchen cookware — the one bold surface. */
+  --enamel:#14342B;
+  /* Cool off-white with a faint green cast, not a warm cream. */
+  --paper:#F2F3EF;
+  /* Turmeric, taken from the plan itself rather than invented. Two tints of
+     one hue: the bright one only ever sits on enamel, the roasted one only
+     ever sits on paper. Neither can pass AA on the other's background. */
+  --haldi:#E0A028;
+  --haldi-deep:#8A5A12;
+  --ink:#1E2622;
+  --quiet:#616B64;
+  --rule:#D6D9D1;
+
+  --serif:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua','URW Palladio L',Georgia,serif;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+
+  --pad:20px;
+  --bar-h:calc(64px + env(safe-area-inset-bottom, 0px));
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{background:var(--enamel);-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.5;
+  -webkit-tap-highlight-color:transparent;
+  padding-bottom:calc(var(--bar-h) + 8px);
+}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* ---------- The day header: the whole design's loud moment ---------- */
+.day{
+  background:var(--enamel);
+  color:var(--paper);
+  padding:calc(env(safe-area-inset-top, 0px) + 26px) var(--pad) 24px;
+}
+.day h1{
+  font-family:var(--serif);
+  font-weight:400;
+  font-size:clamp(40px, 13.5vw, 64px);
+  line-height:1.02;
+  letter-spacing:-0.015em;
+  margin:0;
+}
+.day p{
+  margin:8px 0 0;
+  font-size:17px;
+  color:var(--haldi);
+  letter-spacing:0.01em;
+}
+
+/* ---------- Five meal rows, separated by rules, never cards ---------- */
+.meals{list-style:none;margin:0;padding:0}
+.meal{
+  display:grid;
+  grid-template-columns:24px 1fr;
+  column-gap:14px;
+  padding:16px var(--pad) 18px;
+  border-bottom:1px solid var(--rule);
+}
+.meal-n{
+  font-family:var(--serif);
+  font-size:18px;
+  line-height:1.35;
+  color:var(--haldi-deep);
+  text-align:right;
+}
+.meal-slot{
+  margin:0;
+  font-size:16px;
+  line-height:1.35;
+  color:var(--quiet);
+}
+.meal-text{
+  margin:3px 0 0;
+  font-family:var(--serif);
+  font-size:clamp(20px, 5.2vw, 23px);
+  line-height:1.4;
+  max-width:32ch;
+}
+.meal-text.is-empty{font-style:italic;color:var(--quiet)}
+
+.meal textarea{
+  display:block;
+  width:100%;
+  margin:5px 0 0;
+  padding:10px 11px;
+  font-family:var(--serif);
+  font-size:clamp(20px, 5.2vw, 23px);
+  line-height:1.4;
+  color:var(--ink);
+  background:#FFF;
+  border:1px solid var(--quiet);
+  border-radius:4px;
+  resize:none;
+  overflow:hidden;
+  min-height:56px;
+}
+
+/* Edit mode swaps the read text for the field, in place. */
+body:not(.editing) .meal textarea{display:none}
+body.editing .meal-text{display:none}
+
+.edit-note{
+  margin:0;
+  padding:14px var(--pad);
+  font-size:16px;
+  color:var(--quiet);
+  border-bottom:1px solid var(--rule);
+}
+
+/* ---------- Buttons ---------- */
+.btn{
+  min-height:52px;
+  padding:14px 18px;
+  background:transparent;
+  border:1px solid var(--ink);
+  border-radius:4px;
+  font-size:17px;
+  text-align:center;
+}
+.btn:active{background:rgba(30,38,34,.08)}
+.btn-primary{background:var(--enamel);border-color:var(--enamel);color:var(--paper)}
+.btn-primary:active{background:#0E241E}
+
+.actions{padding:22px var(--pad) 4px}
+.actions .btn{width:100%}
+
+/* ---------- Backup, kept small and at the very bottom ---------- */
+.backup{padding:26px var(--pad) 30px}
+.backup p{margin:0 0 10px;font-size:16px;color:var(--quiet);max-width:38ch}
+.backup-list{display:flex;flex-direction:column;align-items:flex-start}
+.link{
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  padding:0;
+  background:none;
+  border:0;
+  font-size:17px;
+  color:var(--enamel);
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
+.confirm{
+  margin-top:6px;
+  padding:14px;
+  border:1px solid var(--rule);
+  border-radius:4px;
+  background:#FFF;
+}
+.confirm p{margin:0 0 12px;color:var(--ink)}
+.confirm-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ---------- Fixed bottom bar ---------- */
+.bar{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  background:var(--paper);
+  border-top:1px solid var(--rule);
+  padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom, 0px));
+  display:grid;
+  gap:10px;
+}
+.bar-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bar .btn{width:100%}
+.nav-mark{color:var(--quiet);font-size:19px;line-height:1}
+#backToday{width:100%}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:calc(var(--bar-h) + 14px);
+  transform:translateX(-50%);
+  max-width:calc(100vw - 32px);
+  padding:13px 20px;
+  background:var(--enamel);
+  color:var(--paper);
+  border-radius:4px;
+  font-size:17px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease;
+  z-index:10;
+}
+.toast.show{opacity:1}
+
+:focus-visible{outline:3px solid var(--haldi);outline-offset:2px}
+.day :focus-visible{outline-color:var(--haldi)}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+}
+@media (min-width:600px){
+  body{max-width:640px;margin:0 auto;box-shadow:0 0 0 1px var(--rule)}
+  .bar{left:50%;transform:translateX(-50%);width:100%;max-width:640px}
+}
+</style>
+</head>
+<body>
+
+<header class="day">
+  <h1 id="dayName">Monday</h1>
+  <p id="dayDate">1 January</p>
+</header>
+
+<main>
+  <ol class="meals" id="mealList"></ol>
+
+  <p class="edit-note" id="editNote" hidden></p>
+
+  <div class="actions" id="actions">
+    <button type="button" class="btn" id="editBtn">Edit</button>
+  </div>
+
+  <section class="backup">
+    <p>If she changes phone, save a backup first and restore it on the new one.</p>
+    <div class="backup-list">
+      <button type="button" class="link" id="backupBtn">Save a backup</button>
+      <button type="button" class="link" id="restoreBtn">Restore from backup</button>
+      <button type="button" class="link" id="resetBtn">Reset to original plan</button>
+    </div>
+    <div class="confirm" id="resetConfirm" hidden>
+      <p>This erases every change and puts the original plan back.</p>
+      <div class="confirm-row">
+        <button type="button" class="btn" id="resetCancel">Keep changes</button>
+        <button type="button" class="btn btn-primary" id="resetYes">Reset plan</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="bar" id="bar" aria-label="Change day">
+  <button type="button" class="btn" id="backToday" hidden>Back to today</button>
+  <div class="bar-row" id="navRow">
+    <button type="button" class="btn" id="prevBtn"><span class="nav-mark" aria-hidden="true">&lsaquo;</span> Previous</button>
+    <button type="button" class="btn" id="nextBtn">Next <span class="nav-mark" aria-hidden="true">&rsaquo;</span></button>
+  </div>
+  <div class="bar-row" id="editRow" hidden>
+    <button type="button" class="btn" id="cancelBtn">Cancel</button>
+    <button type="button" class="btn btn-primary" id="saveBtn">Save changes</button>
+  </div>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="restoreInput" accept="application/json,.json" hidden>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORE_KEY = 'dietPlan.v1';
+  var VERSION = 1;
+
+  var DAY_KEYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  var DAY_NAMES = {
+    sunday:'Sunday', monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday',
+    thursday:'Thursday', friday:'Friday', saturday:'Saturday'
+  };
+  var SLOTS = [
+    ['preBreakfast','Pre-breakfast'],
+    ['breakfast','Breakfast'],
+    ['lunch','Lunch'],
+    ['dinner','Dinner'],
+    ['afterDinner','After dinner']
+  ];
+  var MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+
+  var DEFAULT_PLAN = {
+    version: VERSION,
+    days: {
+      monday: {
+        preBreakfast:'Milk + panjeeri',
+        breakfast:'2 eggs + bread + tea',
+        lunch:'Milkshake + chickpea salad',
+        dinner:'Qeema + roti + fresh salad + garlic chutney',
+        afterDinner:'Yakhni + turmeric tablets'
+      },
+      tuesday: {
+        preBreakfast:'Milk + handful of nuts',
+        breakfast:'2 eggs + banana + oats + pancakes with honey + tea',
+        lunch:'Fruit chaat with dates + roast or grilled chicken pieces + yakhni',
+        dinner:'Mutton karahi + salad + roti',
+        afterDinner:'Milk + turmeric tablets'
+      },
+      wednesday: {
+        preBreakfast:'Phool makhana + nuts + dates, soaked overnight in milk and blended',
+        breakfast:'2 eggs hoshposh + small whole-grain paratha + tea',
+        lunch:'Bean salad + grilled fish',
+        dinner:'Chapli kebab + roti + salad',
+        afterDinner:'Yakhni + turmeric tablets'
+      },
+      thursday: {
+        preBreakfast:'Milk + panjeeri',
+        breakfast:'2 boiled eggs + bread + tea',
+        lunch:'Grilled chicken wraps + kachumber salad + yakhni',
+        dinner:'Chicken steaks + stir-fry vegetables',
+        afterDinner:'Milk + turmeric tablets'
+      },
+      friday: {
+        preBreakfast:'Nuts + yakhni',
+        breakfast:'2 scrambled eggs + bread and butter + tea',
+        lunch:'2 shami kebab + fruit chaat',
+        dinner:'Biryani + raita',
+        afterDinner:'Flavoured milk + turmeric tablets'
+      },
+      saturday: {
+        preBreakfast:'Phool makhana + nuts + dates, soaked overnight in milk and blended',
+        breakfast:'2 boiled eggs + bread + tea',
+        lunch:'Honey and mustard chicken pieces + fruit salad',
+        dinner:'Chicken boneless handi + roti + salad + garlic chutney',
+        afterDinner:'Yakhni + turmeric tablets'
+      },
+      sunday: {
+        preBreakfast:'Milk + panjeeri',
+        breakfast:'2 eggs hoshposh + small whole-grain paratha + tea',
+        lunch:'Baked fish + stir-fry veggies + quinoa',
+        dinner:'Mutton shorba + any vegetable + roti + salad',
+        afterDinner:'Milk + turmeric tablets'
+      }
+    }
+  };
+
+  function clonePlan(plan) {
+    return JSON.parse(JSON.stringify(plan));
+  }
+
+  /* ------------------------------------------------------------------
+     Storage. Every path here ends with a usable plan on screen — a
+     corrupt or half-written record silently falls back to the defaults
+     rather than showing her nothing.
+     ------------------------------------------------------------------ */
+  function loadPlan() {
+    var raw;
+    try { raw = window.localStorage.getItem(STORE_KEY); }
+    catch (e) { return clonePlan(DEFAULT_PLAN); }
+
+    if (!raw) return clonePlan(DEFAULT_PLAN);
+
+    var parsed;
+    try { parsed = JSON.parse(raw); }
+    catch (e) { return clonePlan(DEFAULT_PLAN); }
+
+    if (!parsed || parsed.version !== VERSION) return clonePlan(DEFAULT_PLAN);
+
+    // Overlay whatever survived onto a full default, so a missing day or
+    // slot shows the original meal instead of an empty row.
+    var plan = clonePlan(DEFAULT_PLAN);
+    if (parsed.days && typeof parsed.days === 'object') {
+      DAY_KEYS.forEach(function (day) {
+        var src = parsed.days[day];
+        if (!src || typeof src !== 'object') return;
+        SLOTS.forEach(function (slot) {
+          if (typeof src[slot[0]] === 'string') plan.days[day][slot[0]] = src[slot[0]];
+        });
+      });
+    }
+    return plan;
+  }
+
+  function savePlan(plan) {
+    try {
+      window.localStorage.setItem(STORE_KEY, JSON.stringify(plan));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Restore policy: deliberately lenient. Start from the built-in plan and
+     overlay every recognisable day/slot string found, so a backup that lost
+     a day still restores what it can, and the caller says which meals fell
+     back. Only a file where nothing at all matched is refused.
+
+     The strict alternative — demand all 7 days x 5 slots or reject — avoids
+     a half-restored week going unnoticed, but throws away a partly-good
+     backup. For someone with one shot at recovering her meals, salvaging
+     beats refusing.
+     ------------------------------------------------------------------ */
+  function normalizeImportedPlan(raw) {
+    var plan = clonePlan(DEFAULT_PLAN);
+    var applied = 0;
+
+    if (raw && typeof raw === 'object' && raw.days && typeof raw.days === 'object') {
+      DAY_KEYS.forEach(function (day) {
+        var src = raw.days[day];
+        if (!src || typeof src !== 'object') return;
+        SLOTS.forEach(function (slot) {
+          var value = src[slot[0]];
+          if (typeof value === 'string') {
+            plan.days[day][slot[0]] = value;
+            applied++;
+          }
+        });
+      });
+    }
+
+    return { plan: plan, applied: applied, total: DAY_KEYS.length * SLOTS.length };
+  }
+
+  /* ------------------------------------------------------------------
+     State
+     ------------------------------------------------------------------ */
+  var plan = loadPlan();
+  var viewDate = new Date();
+  var editing = false;
+  var followToday = true;   // false once she steps to another day
+
+  function sameDay(a, b) {
+    return a.getFullYear() === b.getFullYear()
+        && a.getMonth() === b.getMonth()
+        && a.getDate() === b.getDate();
+  }
+  function isToday() { return sameDay(viewDate, new Date()); }
+  function currentDayKey() { return DAY_KEYS[viewDate.getDay()]; }
+
+  /* ------------------------------------------------------------------
+     Build the five rows once, then only update their contents, so the
+     keyboard never loses the field she is typing in.
+     ------------------------------------------------------------------ */
+  var el = {
+    dayName: document.getElementById('dayName'),
+    dayDate: document.getElementById('dayDate'),
+    mealList: document.getElementById('mealList'),
+    editNote: document.getElementById('editNote'),
+    editBtn: document.getElementById('editBtn'),
+    actions: document.getElementById('actions'),
+    navRow: document.getElementById('navRow'),
+    editRow: document.getElementById('editRow'),
+    backToday: document.getElementById('backToday'),
+    toast: document.getElementById('toast'),
+    restoreInput: document.getElementById('restoreInput'),
+    resetConfirm: document.getElementById('resetConfirm')
+  };
+
+  var rows = SLOTS.map(function (slot, i) {
+    var li = document.createElement('li');
+    li.className = 'meal';
+
+    var num = document.createElement('span');
+    num.className = 'meal-n';
+    num.setAttribute('aria-hidden', 'true');
+    num.textContent = String(i + 1);
+
+    var body = document.createElement('div');
+
+    var label = document.createElement('p');
+    label.className = 'meal-slot';
+    label.id = 'slot-' + slot[0];
+    label.textContent = slot[1];
+
+    var text = document.createElement('p');
+    text.className = 'meal-text';
+
+    var field = document.createElement('textarea');
+    field.rows = 2;
+    field.setAttribute('aria-labelledby', label.id);
+
+    body.appendChild(label);
+    body.appendChild(text);
+    body.appendChild(field);
+    li.appendChild(num);
+    li.appendChild(body);
+    el.mealList.appendChild(li);
+
+    field.addEventListener('input', function () { autoGrow(field); });
+
+    return { key: slot[0], text: text, field: field };
+  });
+
+  function autoGrow(field) {
+    field.style.height = '0px';
+    field.style.height = (field.scrollHeight + 2) + 'px';
+  }
+
+  function render() {
+    var key = currentDayKey();
+    var meals = plan.days[key];
+
+    el.dayName.textContent = DAY_NAMES[key];
+    el.dayDate.textContent = viewDate.getDate() + ' ' + MONTHS[viewDate.getMonth()];
+    document.title = DAY_NAMES[key] + " — Ammi's Diet Plan";
+
+    rows.forEach(function (row) {
+      var value = meals[row.key] || '';
+      row.text.textContent = value || 'Nothing planned';
+      row.text.classList.toggle('is-empty', !value);
+    });
+
+    el.backToday.hidden = editing || isToday();
+    el.navRow.hidden = editing;
+    el.editRow.hidden = !editing;
+    el.actions.hidden = editing;
+    el.editNote.hidden = !editing;
+    if (editing) {
+      el.editNote.textContent = 'Changes apply to every ' + DAY_NAMES[key] + '.';
+    }
+
+    syncBarHeight();
+  }
+
+  /* ------------------------------------------------------------------
+     Day navigation
+     ------------------------------------------------------------------ */
+  function step(days) {
+    if (editing) return;
+    var next = new Date(viewDate.getTime());
+    next.setDate(next.getDate() + days);
+    viewDate = next;
+    followToday = sameDay(viewDate, new Date());
+    render();
+  }
+
+  function goToToday() {
+    if (editing) return;
+    viewDate = new Date();
+    followToday = true;
+    render();
+  }
+
+  /* ------------------------------------------------------------------
+     Edit mode
+     ------------------------------------------------------------------ */
+  function enterEdit() {
+    editing = true;
+    document.body.classList.add('editing');
+    var meals = plan.days[currentDayKey()];
+    rows.forEach(function (row) {
+      row.field.value = meals[row.key] || '';
+    });
+    render();
+    // Height must be measured after the fields are visible.
+    rows.forEach(function (row) { autoGrow(row.field); });
+  }
+
+  function exitEdit() {
+    editing = false;
+    document.body.classList.remove('editing');
+    render();
+  }
+
+  function saveEdits() {
+    var meals = plan.days[currentDayKey()];
+    rows.forEach(function (row) {
+      meals[row.key] = row.field.value.trim();
+    });
+    var ok = savePlan(plan);
+    exitEdit();
+    showToast(ok ? 'Changes saved.' : 'Changes saved for now, but this phone would not store them.');
+  }
+
+  /* ------------------------------------------------------------------
+     Backup
+     ------------------------------------------------------------------ */
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  function saveBackup() {
+    var now = new Date();
+    var name = 'ammi-diet-plan-' + now.getFullYear() + '-' +
+               pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + '.json';
+    var blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    showToast('Backup saved.');
+  }
+
+  function restoreFromFile(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var parsed;
+      try { parsed = JSON.parse(String(reader.result)); }
+      catch (e) { showToast('That file is not a diet plan backup.'); return; }
+
+      var result = normalizeImportedPlan(parsed);
+      if (result.applied === 0) {
+        showToast('That file is not a diet plan backup.');
+        return;
+      }
+
+      plan = result.plan;
+      savePlan(plan);
+      if (editing) exitEdit(); else render();
+      showToast(result.applied === result.total
+        ? 'Backup restored.'
+        : 'Backup restored. Some meals were missing, so the original plan was used for those.');
+    };
+    reader.onerror = function () { showToast('That file could not be read.'); };
+    reader.readAsText(file);
+  }
+
+  function resetToDefaults() {
+    plan = clonePlan(DEFAULT_PLAN);
+    savePlan(plan);
+    el.resetConfirm.hidden = true;
+    if (editing) exitEdit(); else render();
+    showToast('Original plan restored.');
+  }
+
+  /* ------------------------------------------------------------------
+     Toast
+     ------------------------------------------------------------------ */
+  function syncBarHeight() {
+    var bar = document.getElementById('bar');
+    document.documentElement.style.setProperty('--bar-h', bar.offsetHeight + 'px');
+  }
+
+  var toastTimer = null;
+  function showToast(message) {
+    el.toast.textContent = message;
+    el.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.toast.classList.remove('show'); }, 2600);
+  }
+
+  /* ------------------------------------------------------------------
+     Wiring
+     ------------------------------------------------------------------ */
+  document.getElementById('prevBtn').addEventListener('click', function () { step(-1); });
+  document.getElementById('nextBtn').addEventListener('click', function () { step(1); });
+  el.backToday.addEventListener('click', goToToday);
+  el.editBtn.addEventListener('click', enterEdit);
+  document.getElementById('saveBtn').addEventListener('click', saveEdits);
+  document.getElementById('cancelBtn').addEventListener('click', exitEdit);
+
+  document.getElementById('backupBtn').addEventListener('click', saveBackup);
+  document.getElementById('restoreBtn').addEventListener('click', function () {
+    el.restoreInput.click();
+  });
+  el.restoreInput.addEventListener('change', function () {
+    var file = el.restoreInput.files && el.restoreInput.files[0];
+    if (file) restoreFromFile(file);
+    el.restoreInput.value = '';
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    el.resetConfirm.hidden = false;
+    el.resetConfirm.scrollIntoView({ block: 'nearest' });
+    document.getElementById('resetCancel').focus();
+  });
+  document.getElementById('resetCancel').addEventListener('click', function () {
+    el.resetConfirm.hidden = true;
+    document.getElementById('resetBtn').focus();
+  });
+  document.getElementById('resetYes').addEventListener('click', resetToDefaults);
+
+  // Swipe the meal list to change day.
+  var touch = null;
+  el.mealList.addEventListener('touchstart', function (e) {
+    if (editing || e.touches.length !== 1) { touch = null; return; }
+    touch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, { passive: true });
+
+  el.mealList.addEventListener('touchend', function (e) {
+    if (!touch) return;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - touch.x;
+    var dy = t.clientY - touch.y;
+    touch = null;
+    // Horizontal intent only, so scrolling the list never flips the day.
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+    step(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  window.addEventListener('resize', syncBarHeight);
+  window.addEventListener('orientationchange', syncBarHeight);
+
+  document.addEventListener('keydown', function (e) {
+    if (editing) return;
+    var tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.key === 'ArrowLeft') step(-1);
+    if (e.key === 'ArrowRight') step(1);
+  });
+
+  // If the phone sat on this screen overnight, roll to the new day on return.
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden || editing || !followToday) return;
+    if (isToday()) return;
+    viewDate = new Date();
+    render();
+  });
+
+  render();
+
+  /* Service workers need http(s). Opening index.html by double-click still
+     works — it just runs without the offline cache. */
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
