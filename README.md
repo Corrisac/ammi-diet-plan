@@ -17,10 +17,19 @@ Double-clicking `index.html` opens it and everything works except the offline
 cache — service workers need `http(s)`, so that part only switches on once it's
 hosted.
 
-## Put it online
+## It's live
+
+**https://corrisac.github.io/ammi-diet-plan/**
+
+Send that link over WhatsApp, then add it to her home screen (see below).
+
+To publish updates, just `git push` — Pages rebuilds in under a minute.
+
+<details>
+<summary>How it was published, for reference</summary>
 
 1. `git init && git add . && git commit -m "Ammi's diet plan"`
-2. Create a new **public** repo on GitHub and push to it:
+2. Create a new **public** repo and push to it:
    ```
    git remote add origin https://github.com/<user>/<repo>.git
    git branch -M main
@@ -28,10 +37,14 @@ hosted.
    ```
 3. On GitHub: **Settings → Pages → Source: Deploy from a branch**, branch `main`,
    folder `/ (root)`. Save.
-4. Wait about a minute. The URL appears on that same page:
-   `https://<user>.github.io/<repo>/`
-5. Send that link over WhatsApp.
-6. On her phone, add it to the home screen:
+4. Wait about a minute for `https://<user>.github.io/<repo>/` to answer.
+
+</details>
+
+## Getting it onto her phone
+
+1. Send the link over WhatsApp.
+2. On her phone, add it to the home screen:
    - **iPhone:** Share button → *Add to Home Screen*
    - **Android:** the *Install app* prompt, or ⋮ menu → *Add to Home screen*
 
